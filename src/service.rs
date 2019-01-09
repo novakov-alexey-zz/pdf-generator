@@ -15,6 +15,7 @@ use super::templates::TemplateEngine;
 
 const USE_STDIN_MARKER: &str = "-";
 const WKHTMLTOPDF_CMD: &str = "wkhtmltopdf";
+const NO_WKHTMLTOPDF_ERR: &str = "wkhtmltopdf tool is not found. Please install it.";
 
 type PdfPath = String;
 
@@ -31,6 +32,7 @@ pub struct RenderingError(String);
 
 impl ReportService {
     pub fn new() -> Result<Self, ServiceError> {
+        ReportService::bootstrap_checks().map_err(|e| ServiceError(e))?;
         dotenv().ok();
 
         let work_dir = env::var("WORK_DIR").unwrap_or_else(|_| "target/work_dir".to_string());
@@ -40,6 +42,28 @@ impl ReportService {
             ))?;
 
         Ok(ReportService { template_engine, work_dir })
+    }
+
+    fn bootstrap_checks() -> Result<(), String> {
+        info!("Bootstrap check for {} tool", WKHTMLTOPDF_CMD);
+        let status = Command::new(WKHTMLTOPDF_CMD)
+            .arg("-V")
+            .spawn()
+            .map_err(|e| format!("Failed to spawn child process: {}", e))
+            .and_then(|mut p| {
+                p.wait().map_err(|e| format!("Failed to wait for {} tool , error: {}", WKHTMLTOPDF_CMD, e))
+            });
+
+        status.and_then(|s| {
+            if s.success() {
+                Ok(())
+            } else {
+                Err(NO_WKHTMLTOPDF_ERR.to_string())
+            }
+        }).map_err(|e| {
+            error!("{:?}", e);
+            NO_WKHTMLTOPDF_ERR.to_string()
+        })
     }
 
     pub fn render<T>(&self, template_name: String, data: T)

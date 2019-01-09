@@ -1,0 +1,22 @@
+{
+  "template_name": "book-order-report",
+  "user_params": {
+    "customer_name": "Frank Smith",
+    "address": "Address: Frankfurt am Main, Mainzer str. 100",
+    "ordered_books": [
+      {
+        "book_name": "Getting Things Done: The Art of Stress-Free Productivity. Authors: David Allen",
+        "amount": 9.51
+      },
+      {
+        "book_name": "Funky Business - Talent Makes Capital Dance. Authors: Ridderstråle, Nordström",
+        "amount": 14.99
+      },
+      {
+        "book_name": "The Rust Programming Language (Manga Guide). Authors: Klabnik, Nichols",
+        "amount": 23.99
+      }
+    ],
+    "total": 48.49
+  }
+}
