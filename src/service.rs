@@ -5,7 +5,6 @@ extern crate log;
 
 use self::serde::ser::Serialize;
 use self::uuid::Uuid;
-use service::dotenv::dotenv;
 use std::env;
 use std::io::Write;
 use std::process::Command;
@@ -33,7 +32,6 @@ pub struct RenderingError(String);
 impl ReportService {
     pub fn new() -> Result<Self, ServiceError> {
         ReportService::bootstrap_checks().map_err(|e| ServiceError(e))?;
-        dotenv().ok();
 
         let work_dir = env::var("WORK_DIR").unwrap_or_else(|_| "target/work_dir".to_string());
         let template_engine = TemplateEngine::new()
