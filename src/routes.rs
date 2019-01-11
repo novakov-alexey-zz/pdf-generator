@@ -19,7 +19,7 @@ pub struct GetReport {
 #[post("/generate", format = "application/json", data = "<req>")]
 pub fn generate_report(service: State<ReportService>, req: Json<GetReport>) -> Result<NamedFile, Json<String>> {
     let params = req.0.user_params;
-    let report = service.render(req.0.template_name, params);
+    let report = service.render(&req.0.template_name, params);
 
     report
         .map_err(|e| Json(format!("Failed to generate report: {:?}", e)))

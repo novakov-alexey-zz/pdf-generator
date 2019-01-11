@@ -64,7 +64,7 @@ impl ReportService {
         })
     }
 
-    pub fn render<T>(&self, template_name: String, data: T)
+    pub fn render<T>(&self, template_name: &str, data: T)
                      -> Result<PdfPath, RenderingError> where T: Serialize + std::fmt::Debug {
         debug!("rendering report for data {:?}", &data);
         let html = self.template_engine.render(&template_name, &data)
@@ -73,7 +73,7 @@ impl ReportService {
         let destination_pdf = self.dest_name(&template_name);
 
         debug!("destination PDF {}", &destination_pdf);
-        let output = ReportService::run_blocking(html, &destination_pdf)?;
+        let output = ReportService::run_blocking(&html, &destination_pdf)?;
 
         debug!("status: {}", output.status);
         debug!("stdout: {}", String::from_utf8_lossy(&output.stdout));
@@ -90,7 +90,7 @@ impl ReportService {
         format!("{}/{}-{}.pdf", self.work_dir, Uuid::new_v4(), template_name)
     }
 
-    fn run_blocking(html: String, destination_pdf: &str) -> Result<Output, RenderingError> {
+    fn run_blocking(html: &str, destination_pdf: &str) -> Result<Output, RenderingError> {
         let mut child = Command::new(WKHTMLTOPDF_CMD)
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
