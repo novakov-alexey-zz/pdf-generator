@@ -41,3 +41,5 @@ Sample JSON request looks like this:
   }
 }
 ```   
+
+See more details at this INNOQ article: https://www.innoq.com/de/blog/rust-report-generator/
