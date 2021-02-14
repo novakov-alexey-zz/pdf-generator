@@ -12,7 +12,7 @@ use super::handlebars_ext::*;
 
 use self::handlebars::Handlebars;
 use self::ini::Ini;
-use self::ini::ini::Error as IError;
+use self::ini::Error as IError;
 use self::serde::ser::Serialize;
 
 pub struct TemplateEngine {
@@ -62,11 +62,13 @@ impl TemplateEngine {
 
     fn load_i18_reg(path: &Path) -> Result<HashMap<String, String>, IError> {
         let conf = Ini::load_from_file(path.join(Path::new("i18.ini")))?;
-        let reg: HashMap<_, _> = conf.iter()
-            .flat_map(|(_, prop)| prop.clone())
-            .collect();
-
-        info!("i18 registry is loaded, size {}", reg.len());
+        let mut reg = HashMap::new();
+        for (_, prop) in conf.into_iter() {
+            for (k, v) in prop.iter() {
+                reg.insert(k.to_string(), v.to_string());
+            }
+        }
+        info!("i18 registry is loaded, size {:?}", reg.len());
         Ok(reg)
     }
 

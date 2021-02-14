@@ -11,6 +11,7 @@ use std::process::Command;
 use std::process::Output;
 use std::process::Stdio;
 use super::templates::TemplateEngine;
+use std::fs;
 
 const USE_STDIN_MARKER: &str = "-";
 const WKHTMLTOPDF_CMD: &str = "wkhtmltopdf";
@@ -31,9 +32,12 @@ pub struct RenderingError(String);
 
 impl ReportService {
     pub fn new() -> Result<Self, ServiceError> {
-        ReportService::bootstrap_checks().map_err(|e| ServiceError(e))?;
+        ReportService::bootstrap_checks().map_err(ServiceError)?;
 
         let work_dir = env::var("WORK_DIR").unwrap_or_else(|_| "target/work_dir".to_string());
+        fs::create_dir_all(&work_dir)
+            .map_err(|e| ServiceError(format!("Failed to create working directory, due to: {}", e)))?;
+
         let template_engine = TemplateEngine::new()
             .map_err(|e| ServiceError(
                 format!("Failed to create template engine, error: {:?}", e)
@@ -54,6 +58,7 @@ impl ReportService {
 
         status.and_then(|s| {
             if s.success() {
+                println!("{} is found", WKHTMLTOPDF_CMD);
                 Ok(())
             } else {
                 Err(NO_WKHTMLTOPDF_ERR.to_string())
@@ -69,7 +74,7 @@ impl ReportService {
         debug!("rendering report for data {:?}", &data);
         let html = self.template_engine.render(&template_name, &data)
             .map_err(|e| RenderingError(format!("Failed to render, error: {:?}", e)))?;
-
+        trace!("html: {}", html);
         let destination_pdf = self.dest_name(&template_name);
 
         debug!("destination PDF {}", &destination_pdf);
@@ -100,7 +105,7 @@ impl ReportService {
             .map_err(|e| RenderingError(format!("Failed to spawn child process: {}", e)))?;
         {
             let stdin = child.stdin.as_mut()
-                .ok_or(RenderingError("Failed to open stdin".to_string()))?;
+                .ok_or_else(|| RenderingError("Failed to open stdin".to_string()))?;
 
             stdin.write_all(html.as_bytes())
                 .map_err(|e| RenderingError(format!("Failed to write HTML into stdin, error: {}", e)))?;

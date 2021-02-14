@@ -11,7 +11,7 @@ pub fn array_length_helper(
     _: &Handlebars,
     _: &Context,
     _: &mut RenderContext,
-    out: &mut Output,
+    out: &mut dyn Output,
 ) -> Result<(), RenderError> {
     let length = h
         .param(0)
@@ -38,7 +38,7 @@ pub fn contains_helper(
     _: &Handlebars,
     _: &Context,
     _: &mut RenderContext,
-    out: &mut Output,
+    out: &mut dyn Output,
 ) -> Result<(), RenderError> {
     let property = h.param(0)
         .as_ref()
@@ -95,7 +95,7 @@ impl HelperDef for I18Helper {
         _: &'reg Handlebars,
         _: &'rc Context,
         _: &mut RenderContext<'reg>,
-        out: &mut Output,
+        out: &mut dyn Output,
     ) -> HelperResult {
         let read_param = |i| h.param(i)
             .as_ref()
