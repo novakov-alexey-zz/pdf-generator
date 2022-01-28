@@ -14,13 +14,13 @@ use super::templates::TemplateEngine;
 use std::fs;
 
 const USE_STDIN_MARKER: &str = "-";
-const WKHTMLTOPDF_CMD: &str = "wkhtmltopdf";
 const NO_WKHTMLTOPDF_ERR: &str = "wkhtmltopdf tool is not found. Please install it.";
 
 type PdfPath = String;
 
 pub struct ReportService {
     template_engine: TemplateEngine,
+    wkhtmltopdf_cmd: String,
     work_dir: String,
 }
 
@@ -32,7 +32,9 @@ pub struct RenderingError(String);
 
 impl ReportService {
     pub fn new() -> Result<Self, ServiceError> {
-        ReportService::bootstrap_checks().map_err(ServiceError)?;
+        let wkhtmltopdf_cmd: String = env::var("WKHTMLTOPDF_CMD").unwrap_or_else(|_| "wkhtmltopdf".to_string());
+
+        ReportService::bootstrap_checks(&wkhtmltopdf_cmd).map_err(ServiceError)?;
 
         let work_dir = env::var("WORK_DIR").unwrap_or_else(|_| "target/work_dir".to_string());
         fs::create_dir_all(&work_dir)
@@ -43,22 +45,22 @@ impl ReportService {
                 format!("Failed to create template engine, error: {:?}", e)
             ))?;
 
-        Ok(ReportService { template_engine, work_dir })
+        Ok(ReportService { template_engine, wkhtmltopdf_cmd, work_dir })
     }
 
-    fn bootstrap_checks() -> Result<(), String> {
-        info!("Bootstrap check for {} tool", WKHTMLTOPDF_CMD);
-        let status = Command::new(WKHTMLTOPDF_CMD)
+    fn bootstrap_checks(wkhtmltopdf_cmd: &str) -> Result<(), String> {
+        info!("Bootstrap check for {} tool", wkhtmltopdf_cmd);
+        let status = Command::new(wkhtmltopdf_cmd)
             .arg("-V")
             .spawn()
             .map_err(|e| format!("Failed to spawn child process: {}", e))
             .and_then(|mut p| {
-                p.wait().map_err(|e| format!("Failed to wait for {} tool , error: {}", WKHTMLTOPDF_CMD, e))
+                p.wait().map_err(|e| format!("Failed to wait for {} tool , error: {}", wkhtmltopdf_cmd, e))
             });
 
         status.and_then(|s| {
             if s.success() {
-                println!("{} is found", WKHTMLTOPDF_CMD);
+                println!("{} is found", wkhtmltopdf_cmd);
                 Ok(())
             } else {
                 Err(NO_WKHTMLTOPDF_ERR.to_string())
@@ -78,7 +80,7 @@ impl ReportService {
         let destination_pdf = self.dest_name(&template_name);
 
         debug!("destination PDF {}", &destination_pdf);
-        let output = ReportService::run_blocking(&html, &destination_pdf)?;
+        let output = self.run_blocking(&html, &destination_pdf)?;
 
         debug!("status: {}", output.status);
         debug!("stdout: {}", String::from_utf8_lossy(&output.stdout));
@@ -95,8 +97,8 @@ impl ReportService {
         format!("{}/{}-{}.pdf", self.work_dir, Uuid::new_v4(), template_name)
     }
 
-    fn run_blocking(html: &str, destination_pdf: &str) -> Result<Output, RenderingError> {
-        let mut child = Command::new(WKHTMLTOPDF_CMD)
+    fn run_blocking(&self, html: &str, destination_pdf: &str) -> Result<Output, RenderingError> {
+        let mut child = Command::new(&self.wkhtmltopdf_cmd)
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
             .arg(USE_STDIN_MARKER)
@@ -117,3 +119,4 @@ impl ReportService {
         Ok(output)
     }
 }
+
